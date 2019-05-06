@@ -11,3 +11,11 @@ Used to set up my Linux VPS, tested on Ubuntu 18.04 server, usage: `./vps-init.s
 - Install and set up [frp server](https://github.com/fatedier/frp) (random password).
 - Install and configure Samba (Save files in /var/local/samba).
 - Install and configure Aria2 / Aria2NG.
+
+## better-shanbay.js
+
+A [TamperMonkey](https://www.tampermonkey.net/) Javascript which can make your Shanbay better.
+
+- Automatically expand all the definitions of a word.
+- Switch to community contributing notes if there's no your own note.
+- Pronounce words in the review page one by one.
