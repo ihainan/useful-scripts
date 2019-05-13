@@ -14,8 +14,12 @@ Used to set up my Linux VPS, tested on Ubuntu 18.04 server, usage: `./vps-init.s
 
 ## better-shanbay.js
 
-A [TamperMonkey](https://www.tampermonkey.net/) Javascript which can make your Shanbay better.
+A [TamperMonkey](https://www.tampermonkey.net/) JavaScript which can make your Shanbay better.
 
 - Automatically expand all the definitions of a word.
 - Switch to community contributing notes if there's no your own note.
 - Pronounce words in the review page one by one.
+
+## Evernote Hightlight
+
+A [TamperMonkey](https://www.tampermonkey.net/) JavaScript used to highlight the selected text on Evernote Web App.
