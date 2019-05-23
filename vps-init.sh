@@ -2,15 +2,15 @@
 
 function add_new_user() {
     echo "Creating user ${USERNAME}..."
-    
+
     # Create user and change password
     SALT="Q9"
     HASH=$(perl -e "print crypt(${PASSWORD},${SALT})")
     [[ ! -d /home/${USERNAME} ]] && useradd -m -d /home/${USERNAME} -s /bin/bash ${USERNAME} && usermod --password ${HASH} ${USERNAME}
-    
+
     # Update sudo file
     grep -q "${USERNAME}" /etc/sudoers || echo "${USERNAME}	ALL=(ALL:ALL) ALL" >> /etc/sudoers
-    
+
     echo "User $USERNAME was created."
 }
 
@@ -23,11 +23,21 @@ function install_softwares() {
 
 function config_shadowsocks() {
     echo "Configuring ShadowSocks..."
-    
+
     # Install Shadowsocks
     pip install shadowsocks
-    sed -i -e 's/cleanup/reset/g' /usr/local/lib/python2.7/dist-packages/shadowsocks/crypto/openssl.py
-    
+
+    # Replace OpenSSL cleanup method
+    set +e
+    ssl_version=$(openssl version -v | cut -d ' ' -f 2)
+    first_num=$(echo ${ssl_version} | cut -d '.' -f 1)
+    second_num=$(echo ${ssl_version} | cut -d '.' -f 2)
+    if [[ "$first_num" -ge "1" ]] && [[ "$second_num" -ge "1" ]]; then
+        echo "Updating /usr/local/lib/python2.7/dist-packages/shadowsocks/crypto/openssl.py"
+        sed -i -e 's/cleanup/reset/g' /usr/local/lib/python2.7/dist-packages/shadowsocks/crypto/openssl.py
+    fi
+    set -e
+
     # Create configuration file
     export SS_PASSWORD=$(date +%s | sha256sum | base64 | head -c 32 ; echo)
         cat <<EOT > /etc/shadowsocks.json
@@ -42,7 +52,7 @@ function config_shadowsocks() {
     "fast_open": true
 }
 EOT
-    
+
     # Add auto start
     if [[ ! -f /etc/systemd/system/shadowsocks.service ]]; then
         cat <<EOT >> /etc/systemd/system/shadowsocks.service
@@ -64,8 +74,36 @@ EOT
     echo "Shadowsocks has been brought up."
 }
 
-function enable_bbr() {
-    echo "Enabling BBR..."
+function enable_bbr_openvz() {
+    # Download rinetd
+    mkdir -p /root/tools/rinetd
+    cd /root/tools/rinetd & wget --no-check-certificate https://raw.githubusercontent.com/mixool/rinetd/master/rinetd_bbr_powered -O /root/tools/rinetd/rinetd
+    chmod a+x /root/tools/rinetd/rinetd
+
+    # Configurate rinetd
+    cat <<EOT > /etc/rinetd.conf
+# bindadress bindport connectaddress connectport
+0.0.0.0 443 0.0.0.0 443
+0.0.0.0 80 0.0.0.0 80
+0.0.0.0 9527 0.0.0.0 9527
+EOT
+
+    cat <<EOT > /etc/systemd/system/rinetd.service
+[Unit]
+Description=rinetd
+
+[Service]
+ExecStart=/root/tools/rinetd/rinetd -f -c /etc/rinetd.conf raw venet0:0
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOT
+    systemctl enable rinetd.service && systemctl start rinetd.service
+}
+
+
+function enable_bbr_kvm() {
     set +e
     grep -q "net.core.default_qdisc=fq" /etc/sysctl.conf
     exit_status=$?
@@ -77,6 +115,21 @@ function enable_bbr() {
         sysctl net.ipv4.tcp_congestion_control
     fi
     set -e
+}
+
+function enable_bbr() {
+    echo "Enabling BBR..."
+
+    # Determine the type of VM virtualization technology
+    apt-get install -y virt-what
+    if [[ "$(virt-what)" == "openvz" ]]; then
+        echo "OpenVZ..."
+        enable_bbr_openvz
+    else
+        echo "KVM..."
+        enable_bbr_kvm
+    fi
+
     echo "Successfully enabled BBR."
 }
 
@@ -86,26 +139,26 @@ function setup_zsh() {
 
     # Install zsh
     apt-get -y install zsh
-    
+
     # Update /etc/pam.d/chsh file to allow change shell without password
     sed -i -e 's/auth       required   pam_shells.so/auth       sufficient   pam_shells.so/g' /etc/pam.d/chsh
-    
+
     # Install oh my zsh as $USERNAME
     if [[ ! -d /home/${USERNAME}/.oh-my-zsh ]]; then
         su $USERNAME -c "cd ~; $(curl -fsSL http://iij.ihainan.me/tools/install.sh)"
     fi
-    
+
     echo "Oh My Zsh has been configured."
 }
 
 function setup_frp() {
     echo "Seting up frp server..."
-    
+
     if [[ ! -d /root/tools/frp_0.27.0_linux_amd64 ]]; then
         # Download frp
         cd /root && mkdir -p tools/ && cd tools
         wget https://github.com/fatedier/frp/releases/download/v0.27.0/frp_0.27.0_linux_amd64.tar.gz && tar -zxvf frp_0.27.0_linux_amd64.tar.gz
-        
+
         # Create configuration file
         export FRP_PASSWORD=$(date +%s | sha256sum | base64 | head -c 32 ; echo)
         cat <<EOT > /etc/frps.ini
@@ -117,7 +170,7 @@ dashboard_user = $USERNAME
 dashboard_pwd = $FRP_PASSWORD
 auto_token = $FRP_PASSWORD
 EOT
-        
+
         # Create & enable frp service
         if [[ ! -f /etc/systemd/system/frps.service ]]; then
             cat <<EOT >> /etc/systemd/system/frps.service
@@ -322,7 +375,7 @@ WantedBy=multi-user.target
 EOT
             systemctl enable aria2.service
             systemctl start aria2.service
-        fi    
+        fi
 
         # Download and setup Aria2NG
         wget -c https://github.com/mayswind/AriaNg/releases/download/1.1.0/AriaNg-1.1.0.zip
