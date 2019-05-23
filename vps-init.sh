@@ -227,6 +227,36 @@ EOT
     echo "Samba has been installed."
 }
 
+
+function install_docker() {
+    echo "Seting up Docker CE..."
+
+    # Install docker
+    # https://docs.docker.com/install/linux/docker-ce/ubuntu/
+    apt-get update
+    set +e
+    apt-get -y remove docker docker-engine docker.io containerd runc 
+    set -e
+    apt-get -y  --force-yes -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install \
+        apt-transport-https \
+        ca-certificates \
+        curl \
+        gnupg-agent \
+        software-properties-common
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+    add-apt-repository -y \
+        "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+        $(lsb_release -cs) \
+        stable"
+    apt-get update
+    apt-get -y install docker-ce docker-ce-cli containerd.io
+
+    # Allow non-root user
+    usermod -a -G docker $USERNAME
+
+    echo "Docker CE has been installed."
+}
+
 function setup_aria2() {
     echo "Seting up Aria2..."
 
@@ -386,6 +416,7 @@ EOT
     echo "Aria2 has been installed."
 }
 
+
 function byeMessage() {
     echo "ShadowSocks password = $SS_PASSWORD"
     echo "frp password = $FRP_PASSWORD"
@@ -409,4 +440,5 @@ setup_zsh
 setup_frp
 setup_samba
 setup_aria2
+# install_docker
 byeMessage
