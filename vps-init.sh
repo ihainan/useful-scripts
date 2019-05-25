@@ -260,8 +260,8 @@ function install_docker() {
 function setup_aria2() {
     echo "Seting up Aria2..."
 
-    # Install Aria2 & apache2 & unzip
-    apt-get -y install aria2 apache2 unzip
+    # Install Aria2 & Nginx & unzip
+    apt-get -y install aria2 nginx unzip
 
     # Configure Aria2
     if [[ ! -f /etc/aria2/aria2.conf ]]; then
