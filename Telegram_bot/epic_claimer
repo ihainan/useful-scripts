@@ -1,0 +1,32 @@
+#!/bin/bash
+#
+# Claim free games from EPIC Games Store and send the result to my Telegram bot
+# Arguments:
+#   EGS email
+#   EGS password
+#   Path of the gimme_free_epic_shit.js file
+
+set -e
+
+# TOKEN & CHAT ID!!
+export BOT_TOKEN="" # **PUT YOUR TELEGRAM BOT TOKEN HERE!**
+export CHAT_ID=""   # **PUT YOUR CHAT ID HERE!**
+
+# load the library
+BASE_DIR="$(dirname ${0})"
+source "${BASE_DIR}/base.sh"
+
+# get parameters
+if [[ "$#" -lt 3 ]]; then
+  err "Usage: bash epic_claimer <EGS_EMAIL> <EGS_PASSWORD> <EGS_SCRIPT_PATH>"
+  exit 1
+fi
+EGS_EMAIL="$1"
+EGS_PASSWORD="$2"
+EGS_SCRIPT_PATH="$3"
+
+# check the system environment
+command -v node >/dev/null
+
+# execute command and send message
+run_command_and_send_result "${BOT_TOKEN}" "${CHAT_ID}" "node ${EGS_SCRIPT_PATH} ${EGS_EMAIL} ${EGS_PASSWORD}"
