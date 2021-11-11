@@ -17,7 +17,7 @@ function add_new_user() {
 function install_softwares() {
     echo "Installing softwares..."
     apt-get update
-    apt-get -y install git vim python-pip openjdk-8-jdk wget screen curl lsof
+    apt-get -y install git vim python3-pip openjdk-8-jdk wget screen curl lsof
     echo "All softwares were installed."
 }
 
