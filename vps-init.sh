@@ -22,7 +22,7 @@ function install_software() {
   echo "Installing software..."
   apt-get update
   # python3-pip
-  apt-get -y install git vim openjdk-11-jdk wget screen curl lsof build-essential nginx uuid-runtime
+  apt-get -y install git vim openjdk-11-jdk wget screen curl lsof build-essential nginx uuid-runtime unzip zip
   echo "All software were installed."
 }
 
@@ -73,7 +73,7 @@ function setup_frp() {
     cat <<EOT >/etc/frps.ini
 [common]
 bind_port = 3400
-vhost_http_port = $USERNAME
+vhost_http_port = 3401
 dashboard_port = 3402
 dashboard_user = ihainan
 dashboard_pwd = $FRP_PASSWORD
@@ -138,8 +138,9 @@ function install_docker() {
   # Allow non-root user
   if ! grep -q -E "^docker:" /etc/group; then
     groupadd docker
-    usermod -a -G docker "$USERNAME"
   fi
+
+  usermod -a -G docker "$USERNAME"
 
   echo "Docker CE has been installed."
 }
